@@ -1,0 +1,11 @@
+### Listar ventas
+GET http://localhost:3001/api/ventas/listar
+
+### Detalle de venta
+GET http://localhost:3001/api/ventas/detalle/1
+###
+GET http://localhost:3001/api/productos/listar
+
+###
+GET http://localhost:3001/api/productos/listar
+
