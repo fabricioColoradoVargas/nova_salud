@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import Select from 'react-select';
 
 export default function Ventas() {
   const [ventas, setVentas] = useState([]);
@@ -37,6 +38,24 @@ export default function Ventas() {
       .then(setProductos)
       .catch((err) => console.error("Error al obtener productos:", err));
   }
+
+
+  function handleSearchInputChange(inputValue) {
+    if (inputValue.length >= 3) {
+      fetch(`http://localhost:3001/api/productos/producto/buscar?producto=${inputValue}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setProductos(data);
+          } else {
+            console.error("La respuesta no es un array:", data);
+            setProductos([]);
+          }
+        })
+        .catch((err) => console.error("Error al buscar productos:", err));
+    }
+  }
+  
 
   function addRow() {
     setRows([...rows, { id: "", cantidad: "", precio: 0, subtotal: 0 }]);
@@ -133,6 +152,23 @@ export default function Ventas() {
     );
   });
 
+  const customSelectStyles = {
+    control: (base) => ({
+      ...base,
+      width: "100%",
+      maxWidth: "300px", 
+    }),
+    menu: (base) => ({
+      ...base,
+      maxHeight: "200px", 
+      overflowY: "auto", 
+    }),
+    option: (base) => ({
+      ...base,
+      whiteSpace: "normal", 
+    }),
+  };
+
   return (
     <div className="container mt-4">
       <h2>Crear Venta</h2>
@@ -150,18 +186,16 @@ export default function Ventas() {
           {rows.map((r, i) => (
             <tr key={i}>
               <td>
-                <select
-                  className="form-select"
-                  value={r.id}
-                  onChange={(e) => onChangeRow(i, "id", e.target.value)}
-                >
-                  <option value="">Selecciona...</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.producto_nombre}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  className="form-control"
+                  value={r.id ? { value: r.id, label: productos.find(p => p.id === Number(r.id))?.producto_nombre } : null}
+                  onChange={(e) => onChangeRow(i, "id", e ? e.value : "")}
+                  options={productos.map((p) => ({ value: p.id, label: p.producto_nombre }))}
+                  isSearchable={true} 
+                  onInputChange={handleSearchInputChange} // Llamamos a la función de búsqueda
+                  placeholder="Selecciona un producto..."
+                  styles={customSelectStyles} 
+                />
               </td>
               <td>
                 <input
@@ -296,9 +330,7 @@ export default function Ventas() {
                         <td colSpan="2" className="text-end fw-bold">Total</td>
                         <td className="fw-bold">
                           S/{" "}
-                          {detalleVenta
-                            .reduce((total, d) => total + parseFloat(d.subtotal), 0)
-                            .toFixed(2)}
+                          {detalleVenta.reduce((total, d) => total + parseFloat(d.subtotal), 0).toFixed(2)}
                         </td>
                       </tr>
                     </tbody>

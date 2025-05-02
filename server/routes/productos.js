@@ -94,6 +94,50 @@ router.put("/eliminar/:id", (req, res) => {
         res.status(500).json({ message: "Error inesperado" });
     }
 });
+router.get("/productos/buscar", (req, res) => {
+    try {
+        const { producto } = req.query;
+
+        if (!producto || producto.trim() === "") {
+            return res.status(400).json({ message: "Debe proporcionar un término de búsqueda" });
+        }
+
+        const query = `
+            SELECT
+                p.id AS id,
+                p.nombre AS producto_nombre,
+                p.descripcion AS producto_descripcion,
+                p.precio AS precio,
+                p.stock AS stock,
+                p.categoria,
+                c.nombre AS categoria_nombre
+            FROM productos p
+            JOIN categorias c
+            ON c.id = p.categoria
+            WHERE p.estado = 1 AND p.nombre LIKE ?
+            LIMIT 10; 
+        `;
+        
+        db.query(query, [`%${producto}%`], (err, results) => {
+            if (err) {
+                console.error("Error al buscar productos:", err);
+                return res.status(500).json({ message: "Error al buscar productos" });
+            }
+
+            if (results.length === 0) {
+                return res.status(404).json({ message: "No se encontraron productos" });
+            }
+
+            res.status(200).json(results);
+        });
+    } catch (error) {
+        console.error("Error en el servidor:", error);
+        res.status(500).json({ message: "Error inesperado" });
+    }
+});
+
+
+
     
 
 module.exports = router;
