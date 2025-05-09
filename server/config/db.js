@@ -1,7 +1,7 @@
 const mysql = require("mysql");
 
 const db = mysql.createConnection({
-    host: "localhost",
+    host: "host.docker.internal",
     user: "root",
     password: "",
     database: "nova_salud"
