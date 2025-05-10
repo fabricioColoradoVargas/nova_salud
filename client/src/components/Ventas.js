@@ -39,10 +39,13 @@ export default function Ventas() {
       .catch((err) => console.error("Error al obtener productos:", err));
   }
 
-
   function handleSearchInputChange(inputValue) {
-    if (inputValue.length >= 3) {
-      fetch(`http://localhost:3001/api/productos/producto/buscar?producto=${inputValue}`)
+    const trimmedValue = inputValue.trim();
+
+    if (trimmedValue === "") {
+      fetchProductos();
+    } else if (trimmedValue.length >= 3) {
+      fetch(`http://localhost:3001/api/productos/productos/buscar?producto=${trimmedValue}`)
         .then((r) => r.json())
         .then((data) => {
           if (Array.isArray(data)) {
@@ -55,7 +58,6 @@ export default function Ventas() {
         .catch((err) => console.error("Error al buscar productos:", err));
     }
   }
-  
 
   function addRow() {
     setRows([...rows, { id: "", cantidad: "", precio: 0, subtotal: 0 }]);
@@ -192,7 +194,7 @@ export default function Ventas() {
                   onChange={(e) => onChangeRow(i, "id", e ? e.value : "")}
                   options={productos.map((p) => ({ value: p.id, label: p.producto_nombre }))}
                   isSearchable={true} 
-                  onInputChange={handleSearchInputChange} // Llamamos a la función de búsqueda
+                  onInputChange={handleSearchInputChange} 
                   placeholder="Selecciona un producto..."
                   styles={customSelectStyles} 
                 />
