@@ -8,7 +8,7 @@ export default function Ventas() {
   const [detalleVenta, setDetalleVenta] = useState([]);
   const [modalDetalle, setModalDetalle] = useState({ mostrar: false, ventaId: null });
   const [loadingVentas, setLoadingVentas] = useState(true);
-  const [rows, setRows] = useState([{ id: "", cantidad: "", precio: 0, subtotal: 0 }]);
+  const [rows, setRows] = useState([{ id: "", cantidad: "", precio: 0, subtotal: 0, filteredProducts: [] }]);
   const [filtro, setFiltro] = useState("");
   const usuario = JSON.parse(localStorage.getItem("usuario"));
 
@@ -39,20 +39,32 @@ export default function Ventas() {
       .catch((err) => console.error("Error al obtener productos:", err));
   }
 
-  function handleSearchInputChange(inputValue) {
+  function handleSearchInputChange(inputValue, rowIndex) {
     const trimmedValue = inputValue.trim();
 
     if (trimmedValue === "") {
-      fetchProductos();
+      setRows(prevRows => {
+        const newRows = [...prevRows];
+        newRows[rowIndex].filteredProducts = productos;
+        return newRows;
+      });
     } else if (trimmedValue.length >= 3) {
       fetch(`http://localhost:3001/api/productos/productos/buscar?producto=${trimmedValue}`)
         .then((r) => r.json())
         .then((data) => {
           if (Array.isArray(data)) {
-            setProductos(data);
+            setRows(prevRows => {
+              const newRows = [...prevRows];
+              newRows[rowIndex].filteredProducts = data;
+              return newRows;
+            });
           } else {
             console.error("La respuesta no es un array:", data);
-            setProductos([]);
+            setRows(prevRows => {
+              const newRows = [...prevRows];
+              newRows[rowIndex].filteredProducts = [];
+              return newRows;
+            });
           }
         })
         .catch((err) => console.error("Error al buscar productos:", err));
@@ -60,7 +72,7 @@ export default function Ventas() {
   }
 
   function addRow() {
-    setRows([...rows, { id: "", cantidad: "", precio: 0, subtotal: 0 }]);
+    setRows([...rows, { id: "", cantidad: "", precio: 0, subtotal: 0, filteredProducts: [] }]);
   }
 
   function removeRow(idx) {
@@ -120,7 +132,7 @@ export default function Ventas() {
       if (!res.ok) throw new Error(data.message);
       Swal.fire("Éxito", data.message, "success");
       fetchVentas();
-      setRows([{ id: "", cantidad: "", precio: 0, subtotal: 0 }]);
+      setRows([{ id: "", cantidad: "", precio: 0, subtotal: 0, filteredProducts: [] }]);
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     }
@@ -192,9 +204,9 @@ export default function Ventas() {
                   className="form-control"
                   value={r.id ? { value: r.id, label: productos.find(p => p.id === Number(r.id))?.producto_nombre } : null}
                   onChange={(e) => onChangeRow(i, "id", e ? e.value : "")}
-                  options={productos.map((p) => ({ value: p.id, label: p.producto_nombre }))}
+                  options={r.filteredProducts.length > 0 ? r.filteredProducts.map((p) => ({ value: p.id, label: p.producto_nombre })) : productos.map((p) => ({ value: p.id, label: p.producto_nombre }))}
                   isSearchable={true} 
-                  onInputChange={handleSearchInputChange} 
+                  onInputChange={(inputValue) => handleSearchInputChange(inputValue, i)} 
                   placeholder="Selecciona un producto..."
                   styles={customSelectStyles} 
                 />
