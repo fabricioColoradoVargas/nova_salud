@@ -58,12 +58,11 @@ export default function Ventas() {
               newRows[rowIndex].filteredProducts = data;
               return newRows;
             });
-          } else {
-            console.error("La respuesta no es un array:", data);
-            setRows(prevRows => {
-              const newRows = [...prevRows];
-              newRows[rowIndex].filteredProducts = [];
-              return newRows;
+
+            // Agregar productos nuevos a la lista principal si no están
+            setProductos(prev => {
+              const nuevos = data.filter(dp => !prev.some(p => p.id === dp.id));
+              return [...prev, ...nuevos];
             });
           }
         })
@@ -100,6 +99,7 @@ export default function Ventas() {
 
     setRows(newRows);
   }
+
 
   const totalVenta = rows.reduce((sum, r) => sum + r.subtotal, 0);
 
@@ -167,21 +167,28 @@ export default function Ventas() {
   });
 
   const customSelectStyles = {
-    control: (base) => ({
-      ...base,
-      width: "100%",
-      maxWidth: "300px", 
-    }),
-    menu: (base) => ({
-      ...base,
-      maxHeight: "200px", 
-      overflowY: "auto", 
-    }),
-    option: (base) => ({
-      ...base,
-      whiteSpace: "normal", 
-    }),
+    control: (base) => ({ ...base, width: "100%", maxWidth: "300px" }),
+    menu: (base) => ({ ...base, maxHeight: "200px", overflowY: "auto" }),
+    option: (base) => ({ ...base, whiteSpace: "normal" }),
   };
+  function formatearFecha(fechaISO) {
+    const partes = fechaISO.replace("Z", "").split(/[-T:\.]/);
+    const fechaLocal = new Date(
+      partes[0],
+      partes[1] - 1,
+      partes[2],
+      partes[3],
+      partes[4],
+      partes[5]
+    );
+
+    const opcionesFecha = { year: "numeric", month: "2-digit", day: "2-digit" };
+    const opcionesHora = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
+
+    return `${fechaLocal.toLocaleDateString("es-PE", opcionesFecha)} ${fechaLocal.toLocaleTimeString("es-PE", opcionesHora)}`;
+  }
+
+
 
   return (
     <div className="container mt-4">
@@ -202,13 +209,25 @@ export default function Ventas() {
               <td>
                 <Select
                   className="form-control"
-                  value={r.id ? { value: r.id, label: productos.find(p => p.id === Number(r.id))?.producto_nombre } : null}
+                  value={
+                    r.id
+                      ? {
+                          value: r.id,
+                          label: productos.find(p => p.id === Number(r.id))?.producto_nombre || "Producto desconocido",
+                        }
+                      : null
+                  }
                   onChange={(e) => onChangeRow(i, "id", e ? e.value : "")}
-                  options={r.filteredProducts.length > 0 ? r.filteredProducts.map((p) => ({ value: p.id, label: p.producto_nombre })) : productos.map((p) => ({ value: p.id, label: p.producto_nombre }))}
-                  isSearchable={true} 
-                  onInputChange={(inputValue) => handleSearchInputChange(inputValue, i)} 
+                  options={
+                    (r.filteredProducts.length > 0 ? r.filteredProducts : productos).map((p) => ({
+                      value: p.id,
+                      label: p.producto_nombre,
+                    }))
+                  }
+                  isSearchable={true}
+                  onInputChange={(inputValue) => handleSearchInputChange(inputValue, i)}
                   placeholder="Selecciona un producto..."
-                  styles={customSelectStyles} 
+                  styles={customSelectStyles}
                 />
               </td>
               <td>
@@ -235,10 +254,7 @@ export default function Ventas() {
                 />
               </td>
               <td>
-                <button
-                  className="btn btn-danger btn-sm"
-                  onClick={() => removeRow(i)}
-                >
+                <button className="btn btn-danger btn-sm" onClick={() => removeRow(i)}>
                   <i className="bi bi-x-circle"></i>
                 </button>
               </td>
@@ -291,15 +307,13 @@ export default function Ventas() {
           <tbody>
             {ventasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center">
-                  No hay ventas registradas
-                </td>
+                <td colSpan={5} className="text-center">No hay ventas registradas</td>
               </tr>
             ) : ventasFiltradas.map((v) => (
               <tr key={v.id}>
                 <td>{v.id}</td>
                 <td>{v.usuario_nombre}</td>
-                <td>{new Date(v.fecha_venta).toLocaleString()}</td>
+                <td>{formatearFecha(v.fecha_venta)}</td>
                 <td>S/ {v.total_venta.toFixed(2)}</td>
                 <td>
                   <button className="btn btn-info btn-sm" onClick={() => showDetalleModal(v.id)}>
@@ -343,8 +357,7 @@ export default function Ventas() {
                       <tr>
                         <td colSpan="2" className="text-end fw-bold">Total</td>
                         <td className="fw-bold">
-                          S/{" "}
-                          {detalleVenta.reduce((total, d) => total + parseFloat(d.subtotal), 0).toFixed(2)}
+                          S/ {detalleVenta.reduce((total, d) => total + parseFloat(d.subtotal), 0).toFixed(2)}
                         </td>
                       </tr>
                     </tbody>
